@@ -16,8 +16,8 @@ export default defineConfig({
   webServer: {
     command: 'npm run dev -- --port 3100',
     url: 'http://127.0.0.1:3100',
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     timeout: 120_000,
-    env: { AI_PROVIDER: 'mock', DATABASE_PATH: 'data/e2e.sqlite' },
+    env: { AI_PROVIDER: 'mock', DATABASE_PATH: `data/e2e-${process.pid}.sqlite` },
   },
 });

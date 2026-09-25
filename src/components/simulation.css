@@ -1,0 +1,186 @@
+.simulation-tools {
+  margin: 0 0 28px;
+  border-block: 1px solid var(--border);
+  padding: 18px 0;
+}
+.simulation-mode {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.simulation-mode .field {
+  max-width: 240px;
+  margin: 0;
+}
+.lab-panel {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+}
+.lab-panel summary,
+.document-record summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.lab-panel[open] > summary {
+  margin-bottom: 16px;
+}
+.document-record {
+  padding: 12px 0;
+}
+.document-record pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: #edf2e8;
+  padding: 18px;
+  font-size: 12px;
+}
+.lab-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  margin: 0 0 18px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+}
+.lab-tabs button {
+  white-space: nowrap;
+  border: 0;
+  background: transparent;
+  padding: 10px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--muted);
+}
+.lab-tabs button[aria-selected='true'] {
+  background: #e6eedf;
+  color: #214735;
+}
+.lab-sheet {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px;
+  margin: 20px 0;
+  min-width: 0;
+}
+.lab-sheet > h2,
+.lab-sheet > h3 {
+  margin-top: 0;
+}
+.lab-sheet > p {
+  max-width: 850px;
+  line-height: 1.7;
+}
+.lab-record {
+  border-top: 1px solid var(--border);
+  margin: 22px 0;
+  padding: 22px 0;
+}
+.lab-numbers {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 20px;
+  margin-top: 20px;
+}
+.metric-comparison {
+  border-block: 1px solid var(--border);
+  margin: 22px 0;
+  padding: 12px 0;
+}
+.metric-comparison p {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 10px 0;
+}
+.metric-comparison strong {
+  font-variant-numeric: tabular-nums;
+}
+.evidence-picker {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin: 18px 0;
+  padding: 14px;
+  min-width: 0;
+}
+.evidence-picker label {
+  display: flex;
+  gap: 9px;
+  align-items: start;
+  margin: 9px 0;
+  font-size: 13px;
+}
+.evidence-picker input {
+  width: auto;
+  margin-top: 3px;
+  flex: none;
+}
+.evidence-picker small {
+  color: var(--muted);
+}
+.coach-note {
+  border-left: 3px solid #9baf7b;
+  background: #f4f7ef;
+  padding: 12px 16px;
+  line-height: 1.65;
+}
+.learning-stages {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.learning-stages a {
+  display: block;
+  border-bottom: 1px solid var(--border);
+  padding: 20px 0;
+  text-decoration: none;
+}
+.learning-stages strong {
+  display: block;
+  margin: 8px 0;
+}
+.progress-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.progress-table td,
+.progress-table th {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+@media (max-width: 700px) {
+  .simulation-mode {
+    align-items: start;
+    flex-direction: column;
+  }
+  .lab-sheet {
+    padding: 18px;
+  }
+  .lab-numbers,
+  .learning-stages {
+    grid-template-columns: 1fr;
+  }
+  .metric-comparison p {
+    flex-direction: column;
+    gap: 3px;
+  }
+  .lab-tabs button {
+    padding: 8px;
+  }
+  .evidence-picker label {
+    flex-wrap: wrap;
+  }
+}
+@media print {
+  .simulation-tools,
+  .lab-tabs {
+    display: none;
+  }
+  .lab-sheet {
+    border: 0;
+    padding: 0;
+  }
+}

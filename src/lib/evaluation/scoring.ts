@@ -1,6 +1,7 @@
 import type { CaseSession, Evaluation, Scenario } from '../types';
 import { requirementCoverage } from '../requirements/traceability';
 import { criticalMisses } from './critical-misses';
+import { evaluateSimulation } from '../lab/scoring';
 
 export const scoringWeights = {
   discovery: 20,
@@ -20,6 +21,8 @@ export function evaluateCase(
   session: CaseSession,
   provider = 'Mock · transparent rubric',
 ): Evaluation {
+  if (session.simulation && scenario.lab && session.draft.consulting)
+    return evaluateSimulation(scenario, session);
   const d = session.draft;
   const topics = new Set(scenario.hiddenFacts.map((f) => f.topic));
   const discovered = new Set(

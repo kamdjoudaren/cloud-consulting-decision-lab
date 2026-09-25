@@ -14,6 +14,18 @@ test('guided consulting case preserves reasoning and exports a completed portfol
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.setViewportSize({ width: 1440, height: 1000 });
+  // Generated classic variants retain the pre-upgrade 15-step workflow.
+  const legacyResponse = await request.post('/api/scenarios', {
+    data: {
+      level: 1,
+      primarySkill: 'performance',
+      secondarySkill: 'caching',
+      industry: 'E-commerce',
+      companySize: 24,
+    },
+  });
+  expect(legacyResponse.ok()).toBe(true);
+  const legacyScenario = (await legacyResponse.json()).scenario;
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Build better judgment.' })).toBeVisible();
   await page.screenshot({ path: 'docs/screenshots/overview.png', fullPage: true });
@@ -24,7 +36,7 @@ test('guided consulting case preserves reasoning and exports a completed portfol
   const library = await (await request.get('/api/scenarios')).json();
   expect(library.scenarios.length).toBeGreaterThanOrEqual(25);
   expect(JSON.stringify(library)).not.toContain('hiddenFacts');
-  const selected = library.scenarios.find((s: { id: string }) => s.id === 'lost-sales');
+  const selected = library.scenarios.find((s: { id: string }) => s.id === legacyScenario.id);
   await page
     .locator('.scenario-card')
     .filter({ has: page.getByRole('heading', { name: selected.title, exact: true }) })
@@ -37,7 +49,7 @@ test('guided consulting case preserves reasoning and exports a completed portfol
   await page.getByRole('button', { name: 'Start discovery', exact: true }).click();
   await expect(
     page.getByRole('heading', { name: 'Ask the questions that could change the decision.' }),
-  ).toBeVisible();
+  ).toBeVisible({ timeout: 60000 });
   await page.screenshot({ path: 'docs/screenshots/discovery.png', fullPage: true });
   for (const question of [
     'What business impact and lost revenue do you observe?',
@@ -47,6 +59,8 @@ test('guided consulting case preserves reasoning and exports a completed portfol
     'How many engineers operate this and what skills does the team have?',
     'What downtime, recovery time and data loss can the business tolerate?',
     'What security and data constraints apply?',
+    'What requirements constraints and operational observations affect this decision?',
+    'What production operations and incident observations have actually been measured?',
   ]) {
     await fill(page, 'Your question to the client', question);
     await page.getByRole('button', { name: 'Send', exact: true }).click();

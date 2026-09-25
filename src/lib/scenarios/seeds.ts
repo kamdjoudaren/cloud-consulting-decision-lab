@@ -1,4 +1,7 @@
 import type { Evidence, HiddenFact, Scenario } from '@/lib/types';
+import { consultingCatalog } from './consulting-bank';
+import { cloudArchitectureSeeds } from './cloud-architecture';
+import { commonCloudSeeds } from './cloud-common';
 
 const topicKeywords: Record<string, string[]> = {
   business: [
@@ -214,7 +217,7 @@ type EvidenceInput = [
   content: string,
   keywords?: string[],
 ];
-interface SeedInput {
+export interface SeedInput {
   id: string;
   title: string;
   company: string;
@@ -2450,4 +2453,11 @@ const advancedSeeds: SeedInput[] = [
   },
 ];
 
-export const scenarios: Scenario[] = [...seeds, ...advancedSeeds].map(createScenario);
+export const legacyScenarios: Scenario[] = [...seeds, ...advancedSeeds].map(createScenario);
+export const activeScenarios: Scenario[] = [...commonCloudSeeds, ...cloudArchitectureSeeds].map(
+  createScenario,
+);
+// Reserved content stays persisted and usable by historical cases; the public library only lists active cases.
+export const reservedScenarios: Scenario[] = consultingCatalog(legacyScenarios);
+export const activeScenarioIds = new Set(activeScenarios.map((s) => s.id));
+export const scenarios: Scenario[] = [...activeScenarios, ...reservedScenarios];

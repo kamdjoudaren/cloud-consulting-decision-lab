@@ -3,7 +3,16 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, Check, CheckCircle2, Clock, Save } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { phases, phaseLabels, type CaseData, type Draft, type Phase } from '@/lib/types';
+import { phaseLabels, type CaseData, type Draft, type Phase } from '@/lib/types';
+import { workflowPhases } from '@/lib/lab/workflow';
+import {
+  SimulationTools,
+  SimulationAnalysis,
+  SimulationOptions,
+  SimulationCommunication,
+  SimulationChallenges,
+  SimulationDebrief,
+} from './simulation-workspace';
 import DiscoveryWorkspace from './discovery-workspace';
 import AnalysisSteps from './analysis-steps';
 import DecisionSteps, { type ReviewEdit } from './decision-steps';
@@ -191,9 +200,12 @@ export default function CaseWorkspace({ id }: { id: string }) {
       </div>
     );
   const { scenario, session } = data;
+  const phases = workflowPhases(session);
   const currentIndex = phases.indexOf(session.phase);
   const activeIndex = phases.indexOf(active);
   const locked = session.phase === 'evaluation' || session.phase === 'portfolio';
+  const beforeEvaluation = activeIndex < phases.indexOf('evaluation');
+  const beforeReview = activeIndex < phases.indexOf('review');
   function goBack() {
     setActive(phases[Math.max(0, activeIndex - 1)]);
   }
@@ -263,13 +275,13 @@ export default function CaseWorkspace({ id }: { id: string }) {
           )}
         </div>
       )}
-      {locked && activeIndex < 13 && (
+      {locked && beforeEvaluation && (
         <div className="alert">
           This evaluated draft is read-only. Reopen the case from Evaluation or Portfolio to revise
           it.
         </div>
       )}
-      {session.phase === 'review' && activeIndex < 11 && (
+      {session.phase === 'review' && beforeReview && (
         <div className="alert">
           Your first analysis is sealed. Respond to the review, then revise your working draft in
           the Final revision step.
@@ -277,10 +289,22 @@ export default function CaseWorkspace({ id }: { id: string }) {
       )}
       <fieldset
         disabled={
-          busy || (locked && activeIndex < 13) || (session.phase === 'review' && activeIndex < 11)
+          busy || (locked && beforeEvaluation) || (session.phase === 'review' && beforeReview)
         }
         style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}
       >
+        {session.simulation && !['review', 'evaluation', 'portfolio'].includes(active) && (
+          <SimulationTools data={data} draft={draft} onChange={setDraft} run={run} busy={busy} />
+        )}
+        {active === 'analysis' && session.simulation && (
+          <SimulationAnalysis data={data} draft={draft} onChange={setDraft} />
+        )}
+        {active === 'options' && session.simulation && (
+          <SimulationOptions data={data} draft={draft} onChange={setDraft} />
+        )}
+        {active === 'communication' && session.simulation && (
+          <SimulationCommunication data={data} draft={draft} onChange={setDraft} />
+        )}
         {active === 'brief' && (
           <>
             <SectionIntro
@@ -360,20 +384,32 @@ export default function CaseWorkspace({ id }: { id: string }) {
           'simplify',
           'conditions',
           'validation',
-        ].includes(active) && <AnalysisSteps phase={active} draft={draft} onChange={setDraft} />}
-        {['adr', 'communication', 'review', 'final', 'evaluation', 'portfolio'].includes(
-          active,
-        ) && (
-          <DecisionSteps
-            phase={active}
-            data={data}
-            draft={draft}
-            onChange={setDraft}
-            run={run}
-            busy={busy}
-            reviewEdits={reviewEdits}
-            onReviewEdit={(id, edit) => setReviewEdits((previous) => ({ ...previous, [id]: edit }))}
-          />
+        ].includes(active) &&
+          !(session.simulation && active === 'options') && (
+            <AnalysisSteps phase={active} draft={draft} onChange={setDraft} />
+          )}
+        {['adr', 'communication', 'review', 'final', 'evaluation', 'portfolio'].includes(active) &&
+          !(session.simulation && active === 'communication') && (
+            <DecisionSteps
+              phase={active}
+              data={data}
+              draft={draft}
+              onChange={setDraft}
+              run={run}
+              busy={busy}
+              reviewEdits={reviewEdits}
+              onReviewEdit={(id, edit) =>
+                setReviewEdits((previous) => ({ ...previous, [id]: edit }))
+              }
+            />
+          )}
+        {session.simulation &&
+          ['review', 'final'].includes(active) &&
+          session.simulation.challenges.length > 0 && (
+            <SimulationChallenges data={data} run={run} />
+          )}
+        {session.simulation && ['evaluation', 'portfolio'].includes(active) && (
+          <SimulationDebrief data={data} />
         )}
       </fieldset>
       <div className="case-toolbar">
@@ -422,6 +458,17 @@ export default function CaseWorkspace({ id }: { id: string }) {
                 <ArrowRight size={13} />
               </button>
             )}
+          {active === 'evaluation' && session.evaluation?.status === 'needs_revision' && (
+            <button
+              className="button primary"
+              disabled={busy || dirty}
+              title={dirty ? 'Save your latest changes before publishing.' : undefined}
+              onClick={() => run('publish')}
+            >
+              Publish draft with revision notice
+              <ArrowRight size={13} />
+            </button>
+          )}
         </div>
       </div>
     </>

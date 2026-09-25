@@ -174,7 +174,7 @@ export default function ScenarioLibrary({ practice = false }: { practice?: boole
   const router = useRouter();
   const { scenarios, setScenarios, provider, loading, error } = useLabData();
   const [search, setSearch] = useState('');
-  const [level, setLevel] = useState(practice ? '1' : 'all');
+  const [level, setLevel] = useState('all');
   const [skill, setSkill] = useState('all');
   const [industry, setIndustry] = useState('all');
   const [category, setCategory] = useState('all');
@@ -187,6 +187,10 @@ export default function ScenarioLibrary({ practice = false }: { practice?: boole
     if (query.has('level')) setLevel(query.get('level')!);
     if (query.has('skill')) setSkill(query.get('skill')!);
     if (query.has('category')) setCategory(query.get('category')!);
+    if (query.has('scenario')) {
+      setSearch(query.get('scenario')!);
+      setLevel('all');
+    }
   }, []);
   if (loading) return <LoadingScreen />;
   if (error) return <ErrorState message={error} />;
@@ -199,7 +203,7 @@ export default function ScenarioLibrary({ practice = false }: { practice?: boole
       (skill === 'all' || s.skillTags.includes(skill)) &&
       (industry === 'all' || s.industry === industry) &&
       (category === 'all' || s.category === category) &&
-      `${s.title} ${s.company} ${s.businessBrief} ${s.skillTags.join(' ')}`
+      `${s.id} ${s.title} ${s.company} ${s.businessBrief} ${s.skillTags.join(' ')}`
         .toLowerCase()
         .includes(search.toLowerCase()),
   );
@@ -234,8 +238,8 @@ export default function ScenarioLibrary({ practice = false }: { practice?: boole
           </h1>
           <p className="muted">
             {practice
-              ? 'Start small, think deeply, and build your consulting instincts.'
-              : 'Explore business-first situations that demand architectural judgment.'}
+              ? 'Design cloud architectures: compare options, test constraints, and document your decisions.'
+              : 'Explore compute, databases, networking, security, resilience, and cloud migrations.'}
           </p>
         </div>
         <button className="button primary" onClick={() => setGenerator(true)}>
@@ -247,7 +251,7 @@ export default function ScenarioLibrary({ practice = false }: { practice?: boole
         <section className="practice-intro">
           <Compass size={31} />
           <div>
-            <h2>New to consulting? Start at level 1.</h2>
+            <h2>Practice cloud architecture. Start at level 1.</h2>
             <p>
               You will meet a client, investigate their problem, compare options, and explain your
               decision. Guidance is included at every step.
@@ -256,6 +260,11 @@ export default function ScenarioLibrary({ practice = false }: { practice?: boole
           <span className="badge">Guided practice</span>
         </section>
       )}
+      <p className="muted small">
+        Cloud architecture decisions only. Ask the client about workload, latency, availability,
+        security, budget and team capacity. Then compare options, plan validation and write your
+        ADR. Your completed case can become a portfolio study.
+      </p>
       <div className="library-levels">
         <button className={level === 'all' ? 'selected' : ''} onClick={() => setLevel('all')}>
           All levels <span>{scenarios.length}</span>

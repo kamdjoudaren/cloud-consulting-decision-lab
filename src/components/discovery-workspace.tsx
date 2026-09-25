@@ -122,7 +122,8 @@ export default function DiscoveryWorkspace({
             />
             <div className="composer-bottom">
               <span>
-                {scenario.level === 1
+                {scenario.level === 1 &&
+                (!session.simulation || session.simulation.mode === 'guided')
                   ? 'Try asking about business impact, traffic or budget.'
                   : 'Listen. Clarify. Challenge assumptions.'}
               </span>
@@ -417,7 +418,7 @@ export default function DiscoveryWorkspace({
           </div>
         ))}
       </div>
-      {scenario.level === 1 && (
+      {scenario.level === 1 && session.simulation?.mode !== 'expert' && (
         <details className="glossary">
           <summary>Discovery field guide: RTO, RPO and p95</summary>
           <dl>

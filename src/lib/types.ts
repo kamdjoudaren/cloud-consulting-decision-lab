@@ -1,3 +1,4 @@
+import type { LabConfig, LabTruth, ConsultingDraft, SimulationState, Debrief } from './lab/schema';
 export const phases = [
   'brief',
   'discovery',
@@ -15,11 +16,12 @@ export const phases = [
   'evaluation',
   'portfolio',
 ] as const;
-export type Phase = (typeof phases)[number];
+export type Phase = (typeof phases)[number] | 'analysis';
 export const phaseLabels: Record<Phase, string> = {
   brief: 'Business brief',
   discovery: 'Discovery',
   frame: 'Problem framing',
+  analysis: 'Technology → Value',
   options: 'Architecture options',
   tradeoffs: 'Trade-off matrix',
   recommendation: 'Recommendation',
@@ -62,11 +64,65 @@ export interface Evidence {
   title: string;
   status: 'available' | 'unavailable' | 'measurement_required' | 'approximate';
   content: string;
+  format?: 'memo' | 'csv';
+  source?: string;
+  chapter?: number;
+  requires?: string[];
+  factIds?: string[];
+  date?: string;
+  period?: string;
+  scope?: string;
+  owner?: string;
+  confidence?: 'low' | 'medium' | 'high';
+  provenance?:
+    | 'management-provided'
+    | 'finance-reconciled'
+    | 'engineering-observed'
+    | 'third-party'
+    | 'estimated'
+    | 'unverified';
+  definition?: string;
+  metrics?: {
+    cloudBefore: number;
+    cloudAfter: number;
+    unitsBefore: number;
+    unitsAfter: number;
+    revenueBefore: number;
+    revenueAfter: number;
+    cogsBefore: number;
+    cogsAfter: number;
+    /** Optional AI economics measures used when the workload is model-mediated. */
+    attempts?: number;
+    successfulTasks?: number;
+    retries?: number;
+    aiVariableCost?: number;
+    humanReviewRate?: number;
+    /** Optional carve-out bridge measures. Values are planning estimates unless stated otherwise. */
+    allocatedBefore?: number;
+    allocatedAfter?: number;
+    standaloneBefore?: number;
+    standaloneAfter?: number;
+    tsaMonthly?: number;
+    separationSpend?: number;
+  };
 }
 export interface Stakeholder {
   name: string;
   role: string;
   concern: string;
+  objective?: string;
+  incentive?: string;
+  confidence?: 'low' | 'medium' | 'high';
+  possibleDisagreement?: string;
+}
+export interface CompanyProfile {
+  industry?: string;
+  businessModel: string;
+  customerType: string;
+  revenueModel: string;
+  growthStage: string;
+  regulatoryContext: string;
+  transactionContext: string;
 }
 export interface ScenarioPublic {
   id: string;
@@ -82,9 +138,20 @@ export interface ScenarioPublic {
   knownFacts: string[];
   skillTags: string[];
   stakeholders: Stakeholder[];
+  profile?: CompanyProfile;
+  metricFocus?: string[];
+  financialArchetype?: string;
   generated?: boolean;
+  lab?: LabConfig;
 }
 export interface Scenario extends ScenarioPublic {
+  truth?: LabTruth;
+  variants?: {
+    id: string;
+    hiddenFacts: HiddenFact[];
+    evidenceAvailable: Evidence[];
+    truth: LabTruth;
+  }[];
   hiddenFacts: HiddenFact[];
   evidenceAvailable: Evidence[];
   constraints: string[];
@@ -140,6 +207,7 @@ export interface ChangeCondition {
   alternative: string;
 }
 export interface Draft {
+  consulting?: ConsultingDraft;
   notes: Note[];
   requirements: Requirement[];
   framing: {
@@ -231,6 +299,7 @@ export interface ReviewItem {
   rationale: string;
 }
 export interface Evaluation {
+  debrief?: Debrief;
   total: number;
   status: 'completed' | 'needs_revision';
   dimensions: { name: string; score: number; max: number; feedback: string }[];
@@ -241,6 +310,8 @@ export interface Evaluation {
   evaluatedAt: string;
 }
 export interface CaseSession {
+  evaluationHistory?: Evaluation[];
+  simulation?: SimulationState;
   id: string;
   scenarioId: string;
   phase: Phase;
@@ -260,6 +331,7 @@ export interface CaseSession {
   isExample: boolean;
 }
 export interface CaseData {
+  documents?: Evidence[];
   session: CaseSession;
   scenario: ScenarioPublic;
 }

@@ -455,7 +455,7 @@ export default function DecisionSteps({
             <p>
               {result.status === 'completed'
                 ? 'Your decision is ready to document and share.'
-                : 'Resolve the critical gaps and submit a revised analysis.'}
+                : 'Resolve the critical gaps and submit a revised analysis, or publish this draft with its revision notice.'}
             </p>
             <span className="badge" style={{ marginTop: 12 }}>
               {result.provider} assessment
@@ -478,6 +478,10 @@ export default function DecisionSteps({
             >
               Revise this case
             </button>
+            <p className="muted small" style={{ marginTop: 12 }}>
+              You can also publish this draft from the bottom of the page. Its revision status and
+              critical misses will remain visible in your portfolio.
+            </p>
           </div>
         )}
         <div className="grid-2">

@@ -3,6 +3,7 @@
 import { dimensions, type Draft } from '@/lib/types';
 import { readableLabel } from '@/lib/export';
 import MermaidDiagram from './mermaid-diagram';
+import { economicMetrics, valueLedger } from '@/lib/lab/economics';
 
 export function DetailFields({ fields }: { fields: Record<string, unknown> }) {
   return (
@@ -11,7 +12,13 @@ export function DetailFields({ fields }: { fields: Record<string, unknown> }) {
         <div key={key}>
           <dt>{readableLabel(key)}</dt>
           <dd>
-            {typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value || 'Not recorded.')}
+            {typeof value === 'boolean'
+              ? value
+                ? 'Yes'
+                : 'No'
+              : String(
+                  value === null || value === undefined || value === '' ? 'Not recorded.' : value,
+                )}
           </dd>
         </div>
       ))}
@@ -28,6 +35,49 @@ export function DraftDocument({
 }) {
   return (
     <div className="draft-document">
+      {draft.consulting && (
+        <section>
+          <h3>Technology → Value analysis</h3>
+          <DetailFields
+            fields={{
+              technicalAnalysis: draft.consulting.technicalAnalysis,
+              competingHypothesis: draft.consulting.hypotheses,
+              interpretation: draft.consulting.economics.interpretation,
+              confidence: draft.consulting.recommendationConfidence,
+            }}
+          />
+          <h4>Comparable economics</h4>
+          <DetailFields fields={economicMetrics(draft.consulting.economics)} />
+          {draft.consulting.findings.map((f) => (
+            <section key={f.id}>
+              <h4>{f.title}</h4>
+              <DetailFields fields={{ ...f, evidenceIds: f.evidenceIds.join(', ') }} />
+            </section>
+          ))}
+          <h4>Value realization</h4>
+          <DetailFields fields={valueLedger(draft.consulting.initiatives)} />
+          {draft.consulting.initiatives.map((i) => (
+            <section key={i.id}>
+              <h4>{i.name}</h4>
+              <DetailFields fields={{ ...i, evidenceIds: i.evidenceIds.join(', ') }} />
+            </section>
+          ))}
+          <h4>Executive summary</h4>
+          <p>{draft.consulting.executiveSummary}</p>
+          <DetailFields
+            fields={{
+              operatingPartner: draft.consulting.operatingPartner,
+              investmentCommittee: draft.consulting.investmentCommittee,
+            }}
+          />
+          {draft.consulting.deliverables.map((d, i) => (
+            <section key={i}>
+              <h4>{d.title}</h4>
+              <p style={{ whiteSpace: 'pre-wrap' }}>{d.body}</p>
+            </section>
+          ))}
+        </section>
+      )}
       <section>
         <h3>Facts, assumptions, and unknowns</h3>
         {draft.notes.length ? (

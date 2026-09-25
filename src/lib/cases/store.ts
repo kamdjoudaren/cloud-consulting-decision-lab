@@ -16,6 +16,9 @@ import { emptyDraft } from './defaults';
 import { assignRequirementIds } from '../requirements/traceability';
 import { validateDraft } from './workflow';
 import { assertADRUnchanged } from '../adr/service';
+import { selectVariant, visibleDocuments, expertView } from '../lab/engine';
+import type { AssistanceMode } from '../lab/schema';
+import { activeScenarioIds } from '../scenarios/seeds';
 
 // Explicit allow-list: evaluator metadata and undiscovered facts never cross the API boundary.
 export function publicScenario(s: Scenario): ScenarioPublic {
@@ -33,7 +36,11 @@ export function publicScenario(s: Scenario): ScenarioPublic {
     knownFacts: s.knownFacts,
     skillTags: s.skillTags,
     stakeholders: s.stakeholders,
+    profile: s.profile,
+    metricFocus: s.metricFocus,
+    financialArchetype: s.financialArchetype,
     generated: s.generated,
+    lab: s.lab,
   };
 }
 export function getScenario(id: string): Scenario {
@@ -46,10 +53,23 @@ export function getPublicScenarios(): ScenarioPublic[] {
     .orm.select()
     .from(scenariosTable)
     .all()
-    .map((row) => publicScenario(JSON.parse(row.payload) as Scenario));
+    .map((row) => JSON.parse(row.payload) as Scenario & { catalogTrack?: string })
+    .filter((s) => activeScenarioIds.has(s.id) || s.catalogTrack === 'cloud-architecture')
+    .sort((a, b) => {
+      const orderedIds = [...activeScenarioIds];
+      const rank = (id: string) =>
+        activeScenarioIds.has(id) ? orderedIds.indexOf(id) : orderedIds.length;
+      return rank(a.id) - rank(b.id);
+    })
+    .map(publicScenario);
 }
 export function saveGeneratedScenario(scenario: Scenario): ScenarioPublic {
-  const saved = { ...scenario, id: `generated-${randomUUID()}`, generated: true };
+  const saved = {
+    ...scenario,
+    id: `generated-${randomUUID()}`,
+    generated: true,
+    catalogTrack: 'cloud-architecture',
+  };
   database()
     .orm.insert(scenariosTable)
     .values({ id: saved.id, payload: JSON.stringify(saved) })
@@ -81,7 +101,18 @@ function getSession(id: string): CaseSession {
 }
 export function getCase(id: string): CaseData {
   const session = getSession(id);
-  return { session, scenario: publicScenario(getScenario(session.scenarioId)) };
+  const scenario = getCaseScenario(session);
+  return {
+    session,
+    scenario: expertView(publicScenario(scenario), session),
+    documents: visibleDocuments(scenario, session),
+  };
+}
+export function getCaseScenario(session: CaseSession): Scenario {
+  const row = database()
+    .sqlite.prepare('SELECT payload FROM case_truth WHERE case_id = ?')
+    .get(session.id) as { payload: string } | undefined;
+  return row ? (JSON.parse(row.payload) as Scenario) : getScenario(session.scenarioId);
 }
 export function listCases(): CaseData[] {
   return database()
@@ -91,10 +122,26 @@ export function listCases(): CaseData[] {
     .all()
     .map(({ id }) => getCase(id));
 }
-export function createCase(scenarioId: string, isExample = false): CaseData {
-  const scenario = getScenario(scenarioId);
+export function createCase(
+  scenarioId: string,
+  isExample = false,
+  mode: AssistanceMode = 'guided',
+): CaseData {
+  const scenario = selectVariant(getScenario(scenarioId));
   const now = new Date().toISOString();
   const session: CaseSession = {
+    ...(scenario.lab
+      ? {
+          simulation: {
+            mode,
+            level: scenario.level,
+            chapter: 0,
+            chapterNotes: [],
+            hints: [],
+            challenges: [],
+          },
+        }
+      : {}),
     id: randomUUID(),
     scenarioId,
     phase: 'brief',
@@ -113,18 +160,24 @@ export function createCase(scenarioId: string, isExample = false): CaseData {
     published: false,
     isExample,
   };
-  database()
-    .orm.insert(sessionsTable)
-    .values({
-      id: session.id,
-      scenarioId,
-      payload: JSON.stringify(session),
-      version: 0,
-      requirementCounter: 0,
-      updatedAt: now,
-    })
-    .run();
-  return { session, scenario: publicScenario(scenario) };
+  const { sqlite, orm } = database();
+  sqlite.transaction(() => {
+    orm
+      .insert(sessionsTable)
+      .values({
+        id: session.id,
+        scenarioId,
+        payload: JSON.stringify(session),
+        version: 0,
+        requirementCounter: 0,
+        updatedAt: now,
+      })
+      .run();
+    sqlite
+      .prepare('INSERT INTO case_truth (case_id, payload) VALUES (?, ?)')
+      .run(session.id, JSON.stringify(scenario));
+  })();
+  return getCase(session.id);
 }
 
 export function assertVersion(session: CaseSession, expectedVersion: number): void {
@@ -207,6 +260,21 @@ export function updateDraft(id: string, expectedVersion: number, incoming: Draft
         409,
       );
     const draft = structuredClone(incoming);
+    if (session.simulation && !draft.consulting)
+      throw new DomainError('Consulting analysis cannot be removed from a simulation.');
+    if (draft.consulting) {
+      const unlocked = new Set(session.evidenceRequests.flatMap((r) => r.evidenceIds));
+      const ids = [
+        ...draft.consulting.economics.sourceIds,
+        ...draft.consulting.findings.flatMap((f) => f.evidenceIds),
+        ...draft.consulting.initiatives.flatMap((i) => i.evidenceIds),
+      ];
+      if (ids.some((id) => !unlocked.has(id)))
+        throw new DomainError('Link only evidence that you have actually requested.');
+      for (const items of [draft.consulting.findings, draft.consulting.initiatives])
+        if (new Set(items.map((i) => i.id)).size !== items.length)
+          throw new DomainError('Analysis item IDs must be unique.');
+    }
     const assigned = assignRequirementIds(session.draft.requirements, draft.requirements, counter);
     draft.requirements = assigned.requirements;
     draft.links = draft.links.map((link) => ({

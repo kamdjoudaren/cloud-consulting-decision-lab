@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { dimensions } from './types';
+import { consultingSchema, assistanceModes } from './lab/schema';
 
 const text = z.string().max(20_000);
 const id = z.string().max(100);
@@ -10,6 +11,7 @@ const ratings = z.object(
   >,
 );
 export const draftSchema = z.object({
+  consulting: consultingSchema.optional(),
   notes: z
     .array(
       z.object({
@@ -119,6 +121,26 @@ export const generatorSchema = z
   .strict();
 const base = { version: versionSchema };
 export const actionSchema = z.discriminatedUnion('action', [
+  z.object({ ...base, action: z.literal('assistance'), mode: z.enum(assistanceModes) }).strict(),
+  z
+    .object({
+      ...base,
+      action: z.literal('hint'),
+      kind: z.enum(['evidence', 'reasoning', 'metric', 'small']),
+    })
+    .strict(),
+  z
+    .object({ ...base, action: z.literal('chapter'), note: z.string().trim().min(20).max(4000) })
+    .strict(),
+  z
+    .object({
+      ...base,
+      action: z.literal('defend'),
+      challengeId: id,
+      answer: z.string().trim().min(10).max(12000),
+      evidenceIds: z.array(id).max(20),
+    })
+    .strict(),
   z.object({ ...base, action: z.literal('advance') }).strict(),
   z
     .object({

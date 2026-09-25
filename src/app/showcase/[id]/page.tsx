@@ -2,19 +2,19 @@
 
 import { use, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Download, FileCheck2, LockKeyhole, Printer } from 'lucide-react';
+import { ArrowLeft, Download, FileCheck2, FileCode2, LockKeyhole, Printer } from 'lucide-react';
 import type { CaseData } from '@/lib/types';
 import { exampleCase } from '@/data/example-case';
 import {
   apiRequest,
   dateLabel,
   ErrorState,
-  isCompleted,
   LoadingScreen,
   skillLabel,
 } from '@/components/dashboard-data';
 import { DetailFields, DraftDocument } from '@/components/showcase-document';
 import { downloadCaseMarkdown, reasoningChanges, syntheticDisclaimer } from '@/lib/export';
+import { downloadCaseHtml } from '@/lib/html-export';
 import '@/components/screens.css';
 
 export default function CaseStudyPage({ params }: { params: Promise<{ id: string }> }) {
@@ -65,12 +65,12 @@ export default function CaseStudyPage({ params }: { params: Promise<{ id: string
   }, [id]);
   if (error) return <ErrorState message={error} />;
   if (!data) return <LoadingScreen />;
-  if (!data.session.published || !isCompleted(data))
+  if (!data.session.published || !data.session.evaluation)
     return (
       <div className="empty-state">
         <LockKeyhole size={33} />
         <h1>This case study is not published.</h1>
-        <p>Complete the evaluation and publish the case to make its read-only study available.</p>
+        <p>Finish the evaluation and publish the case to make its read-only study available.</p>
         <Link href={`/cases/${id}`} className="button primary">
           Return to the case
         </Link>
@@ -96,6 +96,19 @@ export default function CaseStudyPage({ params }: { params: Promise<{ id: string
             <Download size={16} />
             Export Markdown
           </button>
+          <button
+            className="button secondary"
+            onClick={() => {
+              const article = document.querySelector<HTMLElement>('.showcase-document');
+              if (article)
+                void downloadCaseHtml(article, scenario.title).catch((cause: unknown) =>
+                  setError(cause instanceof Error ? cause.message : 'HTML export failed.'),
+                );
+            }}
+          >
+            <FileCode2 size={16} />
+            Download HTML
+          </button>
         </div>
       </div>
       <header className="study-header">
@@ -117,7 +130,10 @@ export default function CaseStudyPage({ params }: { params: Promise<{ id: string
           <span>
             {scenario.companySize} employees · {scenario.engineeringTeamSize} engineers
           </span>
-          <span>Completed {dateLabel(session.evaluation!.evaluatedAt)}</span>
+          <span>
+            {session.evaluation!.status === 'completed' ? 'Completed' : 'Published as a draft'}{' '}
+            {dateLabel(session.evaluation!.evaluatedAt)}
+          </span>
           <span>
             {session.evaluation!.total}/100 · {session.evaluation!.provider} feedback
           </span>
@@ -136,6 +152,17 @@ export default function CaseStudyPage({ params }: { params: Promise<{ id: string
           )}
         </div>
       </div>
+      {session.evaluation!.status === 'needs_revision' && (
+        <div className="alert warning">
+          <strong>Published draft · revisions required</strong>
+          <p>This case study is shared as a work in progress. Its evaluation identified critical gaps.</p>
+          {session.evaluation!.criticalMisses.length > 0 && (
+            <ul>
+              {session.evaluation!.criticalMisses.map((miss, i) => <li key={i}>{miss}</li>)}
+            </ul>
+          )}
+        </div>
+      )}
       <section className="study-section">
         <span className="eyebrow">01 / THE CONTEXT</span>
         <h2>The client’s problem</h2>
@@ -318,7 +345,7 @@ export default function CaseStudyPage({ params }: { params: Promise<{ id: string
             <small>/100</small>
           </strong>
           <div>
-            <h3>Completed</h3>
+            <h3>{session.evaluation!.status === 'completed' ? 'Completed' : 'Needs revision'}</h3>
             <p>
               {session.evaluation!.provider} · {dateLabel(session.evaluation!.evaluatedAt)}
             </p>

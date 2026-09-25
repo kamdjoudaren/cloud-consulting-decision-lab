@@ -2,12 +2,17 @@ import { phases, type CaseSession, type Draft, type Phase } from '../types';
 import { hasCurrentADR } from '../adr/service';
 import { requirementCoverage, validateTraceability } from '../requirements/traceability';
 import { DomainError } from '../validation';
+import { workflowPhases, labPhaseIssues } from '../lab/workflow';
 
 const filled = (...values: string[]) => values.every((value) => value.trim().length > 0);
 export function phaseIssues(phase: Phase, session: CaseSession): string[] {
+  const labIssues = labPhaseIssues(phase, session);
+  if (labIssues) return labIssues;
   const d = session.draft;
   switch (phase) {
     case 'brief':
+      return [];
+    case 'analysis':
       return [];
     case 'discovery':
       return d.requirements.some((r) => filled(r.text, r.source))
@@ -124,7 +129,8 @@ export function assertPhaseReady(phase: Phase, session: CaseSession): void {
 }
 
 export function assertFirstAnalysisReady(session: CaseSession): void {
-  for (const phase of phases.slice(1, phases.indexOf('review'))) assertPhaseReady(phase, session);
+  const steps = workflowPhases(session);
+  for (const phase of steps.slice(1, steps.indexOf('review'))) assertPhaseReady(phase, session);
   validateTraceability(session.draft.requirements, session.draft.links);
 }
 
@@ -133,9 +139,10 @@ export function advancePhase(session: CaseSession): void {
     throw new DomainError('Use Evaluate to seal and score your final analysis.');
   if (session.phase === 'portfolio')
     throw new DomainError('This case is complete. Reopen it to record a revision.');
-  const currentIndex = phases.indexOf(session.phase);
-  for (const phase of phases.slice(1, currentIndex + 1)) assertPhaseReady(phase, session);
-  session.phase = phases[phases.indexOf(session.phase) + 1];
+  const steps = workflowPhases(session);
+  const currentIndex = steps.indexOf(session.phase);
+  for (const phase of steps.slice(1, currentIndex + 1)) assertPhaseReady(phase, session);
+  session.phase = steps[currentIndex + 1];
 }
 
 export function validateDraft(draft: Draft): void {

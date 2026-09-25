@@ -6,7 +6,9 @@ import { evaluateCase } from '../evaluation/scoring';
 import { mergeSemanticEvaluation } from '../evaluation/semantic';
 import { DomainError, type CaseAction } from '../validation';
 import { advancePhase, assertFirstAnalysisReady, assertPhaseReady } from './workflow';
-import { assertVersion, getCase, getScenario, mutateCase, sealSnapshot } from './store';
+import { assertVersion, getCase, getCaseScenario, mutateCase, sealSnapshot } from './store';
+import { interview, requestDocument } from '../lab/engine';
+import { coachingHint } from '../lab/coaching';
 import type { CaseData, CaseSession, Evaluation, Scenario } from '../types';
 
 function only(session: CaseSession, phases: CaseSession['phase'][]) {
@@ -30,11 +32,65 @@ const reviewSchema = z
 export async function performAction(id: string, action: CaseAction): Promise<CaseData> {
   const initial = getCase(id).session;
   assertVersion(initial, action.version);
-  const scenario = getScenario(initial.scenarioId);
+  const scenario = getCaseScenario(initial);
+  if (['assistance', 'hint', 'chapter', 'defend'].includes(action.action)) {
+    if (!initial.simulation || !scenario.lab)
+      throw new DomainError('This action is available in upgraded simulations.');
+    return mutateCase(id, action.version, (session) => {
+      const sim = session.simulation!;
+      if (action.action === 'assistance') {
+        only(session, ['brief']);
+        if (sim.hints.length)
+          throw new DomainError(
+            'Assistance is fixed once coaching has been used. Start another attempt to change it.',
+          );
+        sim.mode = action.mode;
+      } else if (action.action === 'hint') {
+        if (['evaluation', 'portfolio', 'review'].includes(session.phase))
+          throw new DomainError('Coaching is available while investigating or revising.');
+        if (sim.mode === 'expert') throw new DomainError('Expert mode has no contextual hints.');
+        if (sim.hints.length >= 30)
+          throw new DomainError(
+            'Review your existing coaching notes before requesting more hints.',
+          );
+        sim.hints.push({
+          kind: action.kind,
+          text: coachingHint(session, action.kind),
+          cost: sim.mode === 'hard' ? 2 : 0,
+          createdAt: new Date().toISOString(),
+        });
+      } else if (action.action === 'chapter') {
+        if (['review', 'evaluation', 'portfolio'].includes(session.phase))
+          throw new DomainError('Advance the workstream before sealing the review.');
+        if (sim.chapter >= scenario.lab!.chapters.length - 1)
+          throw new DomainError('This is the final workstream chapter.');
+        const unlocked = [...new Set(session.evidenceRequests.flatMap((r) => r.evidenceIds))];
+        const required = scenario.evidenceAvailable.filter(
+          (d) => d.chapter === sim.chapter && d.status === 'available',
+        );
+        if ((sim.chapter > 0 && !unlocked.length) || required.some((d) => !unlocked.includes(d.id)))
+          throw new DomainError(
+            'Obtain the records for the current chapter before recording its conclusion.',
+          );
+        sim.chapterNotes.push({ chapter: sim.chapter, text: action.note, evidenceIds: unlocked });
+        sim.chapter++;
+      } else if (action.action === 'defend') {
+        only(session, ['review', 'final']);
+        const challenge = sim.challenges.find((c) => c.id === action.challengeId);
+        if (!challenge) throw new DomainError('Challenge not found.', 404);
+        const unlocked = new Set(session.evidenceRequests.flatMap((r) => r.evidenceIds));
+        if (action.evidenceIds.some((id) => !unlocked.has(id)))
+          throw new DomainError('Cite requested evidence only.');
+        challenge.answer = action.answer;
+        challenge.evidenceIds = action.evidenceIds;
+      }
+    });
+  }
   if (action.action === 'chat') {
     only(initial, [
       'discovery',
       'frame',
+      'analysis',
       'options',
       'tradeoffs',
       'recommendation',
@@ -45,16 +101,14 @@ export async function performAction(id: string, action: CaseAction): Promise<Cas
       'communication',
       'final',
     ]);
-    const response = await getProvider().respondAsClient(
-      scenario,
-      initial,
-      action.question,
-      action.stakeholder,
-    );
+    const response = scenario.lab
+      ? interview(scenario, initial, action.question, action.stakeholder)
+      : await getProvider().respondAsClient(scenario, initial, action.question, action.stakeholder);
     return mutateCase(id, action.version, (session) => {
       only(session, [
         'discovery',
         'frame',
+        'analysis',
         'options',
         'tradeoffs',
         'recommendation',
@@ -94,6 +148,7 @@ export async function performAction(id: string, action: CaseAction): Promise<Cas
     only(initial, [
       'discovery',
       'frame',
+      'analysis',
       'options',
       'tradeoffs',
       'recommendation',
@@ -104,11 +159,14 @@ export async function performAction(id: string, action: CaseAction): Promise<Cas
       'communication',
       'final',
     ]);
-    const response = await getProvider().requestEvidence(scenario, action.question, action.reason);
+    const response = scenario.lab
+      ? requestDocument(scenario, initial, action.question)
+      : await getProvider().requestEvidence(scenario, action.question, action.reason);
     return mutateCase(id, action.version, (session) => {
       only(session, [
         'discovery',
         'frame',
+        'analysis',
         'options',
         'tradeoffs',
         'recommendation',
@@ -148,6 +206,25 @@ export async function performAction(id: string, action: CaseAction): Promise<Cas
         409,
       );
     assertFirstAnalysisReady(initial);
+    if (
+      scenario.lab?.chapters.length &&
+      initial.simulation!.chapter < scenario.lab.chapters.length - 1
+    )
+      throw new DomainError('Finish the staged workstream before sealing the first analysis.');
+    if (
+      scenario.lab &&
+      ['Value Creation', 'Mega-Case'].includes(scenario.lab.family) &&
+      scenario.lab.peStage === '100-Day Plan' &&
+      !initial.draft.consulting?.initiatives.some(
+        (i) =>
+          [i.name, i.owner, i.baseline, i.target, i.kpi, i.timeline, i.risk, i.benefitKey].every(
+            (v) => v.trim().length >= 3,
+          ) && i.evidenceIds.length,
+      )
+    )
+      throw new DomainError(
+        'Record at least one sourced initiative with an owner, baseline, target, timeline, risk, KPI and unique benefit key.',
+      );
     // Commit the immutable first analysis before any external request, including failures.
     const sealed = mutateCase(id, action.version, (session) => {
       sealSnapshot(session, 'first');
@@ -171,6 +248,16 @@ export async function performAction(id: string, action: CaseAction): Promise<Cas
         })),
       ];
       session.reviewProvider = provider.name;
+      if (session.simulation && !session.simulation.challenges.length)
+        session.simulation.challenges = scenario
+          .truth!.challengeQuestions.slice(0, session.simulation.level <= 2 ? 1 : 3)
+          .map((q) => ({
+            ...q,
+            id: randomUUID(),
+            answer: '',
+            evidenceIds: [],
+            createdAt: new Date().toISOString(),
+          }));
     });
   }
   if (action.action === 'evaluate') {
@@ -192,9 +279,9 @@ export async function performAction(id: string, action: CaseAction): Promise<Cas
       sealSnapshot(session, 'final');
       session.phase = 'evaluation';
       session.published = false;
-      session.evaluation = provider.evaluateCase ? null : baseline;
+      session.evaluation = provider.evaluateCase && !session.simulation ? null : baseline;
     });
-    if (!provider.evaluateCase) return sealed;
+    if (!provider.evaluateCase || initial.simulation) return sealed;
     let evaluation = baseline;
     try {
       evaluation = mergeSemanticEvaluation(
@@ -235,12 +322,17 @@ export async function performAction(id: string, action: CaseAction): Promise<Cas
       }
       case 'publish':
         only(session, ['evaluation', 'portfolio']);
-        assertPhaseReady('evaluation', session);
+        if (!session.evaluation)
+          throw new DomainError('Wait for the evaluation to finish before publishing.');
+        // Publishing is the learner's choice. Keep the original evaluation and its
+        // critical misses visible so a draft can be shared without implying it passed.
         session.phase = 'portfolio';
         session.published = true;
         break;
       case 'reopen':
         only(session, ['evaluation', 'portfolio']);
+        if (session.evaluation)
+          session.evaluationHistory = [...(session.evaluationHistory || []), session.evaluation];
         session.phase = 'final';
         session.published = false;
         session.evaluation = null;

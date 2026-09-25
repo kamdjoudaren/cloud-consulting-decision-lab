@@ -6,11 +6,11 @@ import { exampleCase } from '@/data/example-case';
 import { skills } from '@/data/market-skill-matrix';
 
 export const levelNames = [
-  'Decision fundamentals',
-  'Small business architecture',
+  'Guided beginner',
+  'Junior',
   'Consulting',
-  'High-stakes architecture',
-  'Cloud + AI infrastructure',
+  'Advanced architecture',
+  'Expert architecture',
 ];
 export const skillLabel = (value: string) =>
   skills.find((skill) => skill.id === value)?.name ||

@@ -21,7 +21,8 @@ const provider = vi.hoisted(() => ({
 vi.mock('../src/lib/ai/provider', () => ({ getProvider: () => provider }));
 
 function reviewReadyCase() {
-  const data = createCase(getPublicScenarios()[0].id);
+  // Keep exercising the legacy workflow; upgraded lifecycle has its own integration tests.
+  const data = createCase('regional-recovery');
   return mutateCase(data.session.id, 0, (session) => {
     const d = session.draft;
     d.requirements = [

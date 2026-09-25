@@ -16,7 +16,11 @@ export function toPublicScenario(scenario: Scenario): ScenarioPublic {
     knownFacts: [...scenario.knownFacts],
     skillTags: [...scenario.skillTags],
     stakeholders: scenario.stakeholders.map((item) => ({ ...item })),
+    profile: scenario.profile ? { ...scenario.profile } : undefined,
+    metricFocus: scenario.metricFocus ? [...scenario.metricFocus] : undefined,
+    financialArchetype: scenario.financialArchetype,
     generated: scenario.generated,
+    lab: scenario.lab,
   };
 }
 

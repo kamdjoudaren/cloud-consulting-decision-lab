@@ -22,6 +22,7 @@ const navigation = [
   { href: '/scenarios', label: 'Scenario library', icon: BookOpen },
   { href: '/cases', label: 'My cases', icon: BriefcaseBusiness },
   { href: '/skills', label: 'Skill matrix', icon: ChartNoAxesCombined },
+  { href: '/learn', label: 'Learning path', icon: BookOpen },
   { href: '/showcase', label: 'Portfolio', icon: ArrowUpRight },
 ];
 export default function AppShell({ children }: { children: React.ReactNode }) {

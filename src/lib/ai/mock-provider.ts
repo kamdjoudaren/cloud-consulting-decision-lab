@@ -9,7 +9,7 @@ import type {
   Scenario,
 } from '../types';
 import type { AIProvider } from './types';
-import { scenarios } from '../scenarios/seeds';
+import { activeScenarios } from '../scenarios/seeds';
 import { scenarioSchema } from '../scenarios/schema';
 import { criticalMisses } from '../evaluation/critical-misses';
 import { requirementCoverage } from '../requirements/traceability';
@@ -213,7 +213,7 @@ export class MockProvider implements AIProvider {
     return feedback;
   }
   async generateScenario(input: GeneratorInput): Promise<Scenario> {
-    const candidates = scenarios
+    const candidates = activeScenarios
       .filter((scenario) => scenario.engineeringTeamSize <= input.companySize)
       .sort((a, b) => {
         const fit = (s: Scenario) =>

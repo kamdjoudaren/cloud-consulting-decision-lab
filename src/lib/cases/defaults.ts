@@ -1,6 +1,8 @@
 import type { Draft, ScenarioPublic } from '../types';
+import { emptyConsulting } from '../lab/schema';
 export function emptyDraft(scenario: ScenarioPublic): Draft {
   return {
+    ...(scenario.lab ? { consulting: emptyConsulting() } : {}),
     notes: scenario.knownFacts.map((text, i) => ({
       id: `brief-${i + 1}`,
       kind: 'fact',

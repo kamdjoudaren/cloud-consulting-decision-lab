@@ -1,4 +1,5 @@
 import { dimensions, type CaseData, type Draft } from './types';
+import { consultingMarkdown, reportFields } from './lab/report';
 
 export const syntheticDisclaimer =
   'This is a synthetic consulting case created for cloud architecture practice. No real customer data is represented.';
@@ -79,6 +80,7 @@ export function draftToMarkdown(draft: Draft, headingDepth = 2): string {
   out += heading('Architecture diagram') + codeBlock(draft.diagram, 'mermaid');
   out += heading('Final decision') + `${draft.finalDecision || 'Not recorded.'}\n\n`;
   out += heading('Lessons learned') + `${draft.lessons || 'Not recorded.'}\n\n`;
+  if (draft.consulting) out += consultingMarkdown(draft.consulting);
   return out;
 }
 
@@ -108,6 +110,8 @@ export function caseToMarkdown(data: CaseData): string {
   const final = session.snapshots.filter((s) => s.kind === 'final').at(-1);
   const first = session.snapshots.find((s) => s.kind === 'first');
   let out = `# ${scenario.title}\n\n> ${syntheticDisclaimer}\n\n`;
+  if (session.simulation)
+    out += `Assistance: ${session.simulation.mode} · Hints used: ${session.simulation.hints.length}\n\n${session.simulation.chapterNotes.map((n) => `### Workstream chapter ${n.chapter + 1}\n\n${n.text}`).join('\n\n')}\n\n## Executive challenge\n\n${session.simulation.challenges.map((q) => `### ${q.audience}\n\n${q.question}\n\n${q.answer}\n\nSources: ${q.evidenceIds.join(', ')}`).join('\n\n')}\n\n`;
   if (session.isExample)
     out +=
       '> Worked example supplied with the application. This is demonstration content, not the learner’s work.\n\n';
@@ -156,6 +160,8 @@ export function caseToMarkdown(data: CaseData): string {
   else out += 'A comparison requires both an immutable first and final snapshot.\n\n';
   if (session.evaluation) {
     const evaluation = session.evaluation;
+    if (evaluation.debrief)
+      out += `## Structured debrief\n\n${reportFields(evaluation.debrief)}\n\n`;
     out +=
       '## Evaluation\n\n' +
       paragraph('Score', `${evaluation.total}/100`) +

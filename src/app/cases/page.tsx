@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, ArrowUpRight, BriefcaseBusiness, Plus, Search } from 'lucide-react';
 import { phaseLabels, phases } from '@/lib/types';
+import { workflowPhases } from '@/lib/lab/workflow';
 import {
   caseStatus,
   dateLabel,
@@ -85,7 +86,7 @@ export default function CasesPage() {
               <div className="progress-track">
                 <span
                   style={{
-                    width: `${isCompleted(c) ? 100 : ((phases.indexOf(c.session.phase) + 1) / phases.length) * 100}%`,
+                    width: `${isCompleted(c) ? 100 : ((workflowPhases(c.session).indexOf(c.session.phase) + 1) / workflowPhases(c.session).length) * 100}%`,
                   }}
                 />
               </div>

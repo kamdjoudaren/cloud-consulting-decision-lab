@@ -29,12 +29,24 @@ export function database() {
     CREATE TRIGGER IF NOT EXISTS immutable_snapshot_delete BEFORE DELETE ON reasoning_snapshots BEGIN SELECT RAISE(ABORT, 'Reasoning snapshots are immutable'); END;
   `);
   const orm = drizzle(sqlite);
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS case_truth (case_id TEXT PRIMARY KEY REFERENCES case_sessions(id), payload TEXT NOT NULL);
+    CREATE TRIGGER IF NOT EXISTS immutable_truth_update BEFORE UPDATE ON case_truth BEGIN SELECT RAISE(ABORT, 'Case truth is immutable'); END;
+    CREATE TRIGGER IF NOT EXISTS immutable_truth_delete BEFORE DELETE ON case_truth BEGIN SELECT RAISE(ABORT, 'Case truth is immutable'); END;
+  `);
   sqlite.transaction(() => {
+    // Freeze every existing scenario BEFORE refreshing the curated catalog.
+    sqlite.exec(
+      'INSERT OR IGNORE INTO case_truth (case_id, payload) SELECT c.id, s.payload FROM case_sessions c JOIN scenarios s ON c.scenario_id = s.id',
+    );
     for (const scenario of scenarios)
       orm
         .insert(scenariosTable)
         .values({ id: scenario.id, payload: JSON.stringify(scenario) })
-        .onConflictDoNothing()
+        .onConflictDoUpdate({
+          target: scenariosTable.id,
+          set: { payload: JSON.stringify(scenario) },
+        })
         .run();
   })();
   const value = { sqlite, orm };

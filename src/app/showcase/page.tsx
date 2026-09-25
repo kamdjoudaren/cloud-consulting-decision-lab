@@ -16,7 +16,7 @@ export default function ShowcasePage() {
   const { cases, loading, error } = useLabData();
   if (loading) return <LoadingScreen />;
   if (error) return <ErrorState message={error} />;
-  const published = cases.filter((c) => c.session.published && isCompleted(c));
+  const published = cases.filter((c) => c.session.published && c.session.evaluation);
   return (
     <div>
       <div className="page-header">
@@ -59,6 +59,9 @@ export default function ShowcasePage() {
               </div>
               <h2>{c.scenario.title}</h2>
               <p>{c.session.draft.recommendation.decision || c.scenario.businessBrief}</p>
+              {c.session.evaluation?.status === 'needs_revision' && (
+                <span className="badge" style={{ marginTop: 10 }}>Draft · revisions required</span>
+              )}
               <div className="scenario-tags">
                 {c.scenario.skillTags.slice(0, 3).map((skill) => (
                   <span key={skill}>{skillLabel(skill)}</span>
@@ -75,7 +78,7 @@ export default function ShowcasePage() {
         <div className="empty-state">
           <BookOpen size={35} />
           <h2>Good reasoning deserves a home.</h2>
-          <p>Complete a case and publish it from the final step to add your first study.</p>
+          <p>Publish your case from its evaluation step to add it to this collection.</p>
           <Link className="button primary" href="/cases">
             Open your cases <ArrowRight size={16} />
           </Link>

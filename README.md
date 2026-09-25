@@ -1,5 +1,7 @@
 # Cloud Consulting Decision Lab
 
+The current public catalog focuses on **48 cloud architecture decisions**. Previous consulting and PE scenarios are retained in reserve, with historical cases preserved. Start with ECS/EC2, databases, networks, resilience and migrations, then explore data pipelines and AI architecture. See [the cloud portfolio guide](docs/CLOUD_PORTFOLIO.md) for a suggested practice sequence.
+
 **Practice the decisions, not just the services.**
 
 Cloud labs teach me how to build infrastructure. This project trains me to decide what should be built, why it fits the business, which trade-offs it accepts, and how to defend that decision.
@@ -31,7 +33,10 @@ Playwright uses installed Google Chrome. Alternatively run `npx playwright insta
 
 ## What it trains
 
-- **25 scenarios across five levels**, with distinct business contexts, teams, budgets, evidence and risks.
+- **48 active cloud architecture scenarios across five levels**, plus 158 earlier scenarios kept in reserve. Historical attempts and portfolio records remain available.
+- **Four assistance modes**, independent of difficulty: guided, standard, hard and expert. PE practice is available from Level 1.
+- **Technology → Value findings**, linking technical evidence to operations, customers, business, finance, action and confidence.
+- **Comparable unit economics and value realization**, separating identified opportunity, verified savings, capacity, avoidance, offsets and implementation costs.
 - **Client discovery**, with selective disclosure and separate facts, assumptions, unknowns and requirements.
 - **Evidence requests** when the consultant does not yet have enough information to decide.
 - **Architecture alternatives**, ten trade-off dimensions and written reasoning.
@@ -41,13 +46,27 @@ Playwright uses installed Google Chrome. Alternatively run `npx playwright insta
 - **Immutable accepted ADRs**, with explicit supersession when decisions change.
 - **Communication for engineers, CTOs, CFOs and CEOs**, plus optional analogies and service-free explanations.
 - **First and final snapshots**, a reasoning comparison and justified review responses.
-- **Eight scoring dimensions**, with critical misses that force revision regardless of the score.
-- **Portfolio case studies**, complete Markdown exports, print styles and Mermaid diagrams.
+- **Ten scoring dimensions for upgraded simulations**, with critical misses that force revision regardless of score; original cases retain their eight-dimensional rubric.
+- **Portfolio case studies**, Markdown and ZIP work-product exports, financial bridge CSV, print styles and Mermaid diagrams.
+- **Learning path and attempt history**, contextual glossary, metric driver maps, debriefs and executive defense rounds.
 - **Skill coverage and progress**, calculated from personal cases, separate from worked examples.
 
 There is no universal service answer key. Managed compute can fit one team and be the wrong trade-off for another. The question is whether the recommendation follows from the evidence and requirements.
 
 ## A consulting session
+
+Upgraded simulations use a compact path for beginners:
+
+```text
+Brief → Discovery and evidence → Technical / Economics / Value analysis
+  → Options and trade-offs → Recommendation → Audience communication
+  → Sealed first analysis → Review and executive defense → Final revision
+  → Evaluation and debrief → Portfolio and work products
+```
+
+Levels 3–5 add change conditions, validation and accepted ADRs. Advanced cases require executive work products; mega-cases add ten staged workstream chapters. `/learn` offers a recommended progression while the full library remains open. Start with **AWS spend rose 55%. Is that bad?**: the same brief can hide materially different unit economics, fixed for the lifetime of the case.
+
+Cases started before the upgrade retain the original path:
 
 ```text
 Brief → Discovery → Framing → Options → Trade-offs
@@ -65,6 +84,8 @@ Completion gates run on the server. Advancing saves the current draft first. Use
 
 The mock client matches scenario-specific discovery topics in English or French, returning only a small amount of relevant information. It can report missing measurements, approximate answers or available evidence. Asking it to choose an architecture does not reveal a solution.
 
+Upgraded simulations freeze private truth at case creation. Interviews enforce stakeholder topic knowledge; documents may require earlier records or later chapters. Deterministic v2 scoring reconciles requested financial evidence and checks causal completeness, uncertainty and source-backed defenses. It uses limited keyword indicators and remains formative, not a substitute for expert review.
+
 Review uses the learner's draft, discovered topics and requirements. Scoring combines structural completeness, traceability, evidence, audience differentiation and explicit risk checks. **It is formative feedback, not a guarantee that an architecture is correct.** Mock scenario generation creates clearly labeled variations of curated cases.
 
 ### OpenAI mode — optional
@@ -81,6 +102,8 @@ DATABASE_PATH=./data/decision-lab.sqlite
 Restart after configuration changes. The official SDK runs server-side. The provider boundary supports client simulation, evidence, review, communication evaluation and validated generation. Keys never enter the browser; no secret uses a `NEXT_PUBLIC_` variable.
 
 Live mode sends relevant scenario data and learner-authored content to the provider. Use synthetic practice material rather than customer secrets. Live calls require your own API access. Mock mode is fully usable without it.
+
+For upgraded cases, evidence and interviews remain deterministic and private-state controlled. Live mode can supply review and communication feedback; v2 numeric evaluation remains deterministic. Generated variations currently use the classic contract and workflow. No live-provider verification is implied by local mock tests.
 
 ## Architecture
 
@@ -112,6 +135,7 @@ src/
     adr/               Acceptance, immutability and supersession
     requirements/      Stable IDs and traceability
     evaluation/        Weighted rubric and critical misses
+    lab/               Consulting schemas, truth/evidence engine, finance, coaching, rubric and ZIP exports
     types.ts           Shared contracts
     validation.ts      Zod input schemas
     export.ts          Markdown and reasoning comparison
@@ -140,3 +164,5 @@ The project does not claim real consulting engagements or certify seniority. Bud
 No billing, teams, subscriptions, SSO or social features. SQLite keeps setup simple; aggregates keep the long workflow understandable. The mock matcher is limited, and semantic dialogue benefits from a live provider. Scores cannot establish production readiness.
 
 The original rationale is preserved in [the product vision](docs/PRODUCT_VISION.md).
+
+See the [upgrade audit](docs/UPGRADE.md) and [scenario authoring guide](docs/SCENARIO_AUTHORING.md) for schema contracts, new content, evidence, stakeholders, variants, difficulty, scoring and migration conventions. The current bank sits within the requested 120–160-case range and remains designed for further editorial refinement.
