@@ -13,6 +13,7 @@ import {
   skillLabel,
 } from '@/components/dashboard-data';
 import { DetailFields, DraftDocument } from '@/components/showcase-document';
+import DownloadPdfButton from '@/components/download-pdf-button';
 import { downloadCaseMarkdown, reasoningChanges, syntheticDisclaimer } from '@/lib/export';
 import { downloadCaseHtml } from '@/lib/html-export';
 import '@/components/screens.css';
@@ -92,6 +93,7 @@ export default function CaseStudyPage({ params }: { params: Promise<{ id: string
             <Printer size={16} />
             Print / PDF
           </button>
+          <DownloadPdfButton caseId={session.id} title={scenario.title} />
           <button className="button primary" onClick={() => downloadCaseMarkdown(data)}>
             <Download size={16} />
             Export Markdown

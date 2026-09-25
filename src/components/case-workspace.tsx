@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, Clock, Save } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, Clock, FileDown, Save } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { phaseLabels, type CaseData, type Draft, type Phase } from '@/lib/types';
@@ -243,6 +243,12 @@ export default function CaseWorkspace({ id }: { id: string }) {
               : phaseLabels[session.phase]}
           </span>
         </div>
+      </div>
+      <div className="case-export-actions">
+        <Link className="button secondary small" href={`/cases/${id}/pdf`}>
+          <FileDown size={14} />
+          Print / Save as PDF
+        </Link>
       </div>
       <nav className="case-stepper" aria-label="Case progress">
         {phases.map((p, i) => (
